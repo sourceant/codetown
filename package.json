@@ -10,7 +10,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./vocabulary.json": "./vocabulary.json"
+    "./vocabulary.json": "./vocabulary.json",
+    "./three": {
+      "types": "./dist/three.d.ts",
+      "default": "./dist/three.js"
+    }
   },
   "bin": {
     "codetown": "./dist/cli.js"
@@ -31,6 +35,8 @@
   },
   "devDependencies": {
     "@types/node": "25.9.9",
+    "@types/three": "0.186.0",
+    "three": "0.186.1",
     "typescript": "5.9.3",
     "vitest": "5.0.3"
   },
@@ -39,5 +45,13 @@
     "type": "git",
     "url": "git+https://github.com/sourceant/codetown.git"
   },
-  "homepage": "https://github.com/sourceant/codetown"
+  "homepage": "https://github.com/sourceant/codetown",
+  "peerDependencies": {
+    "three": ">=0.170.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  }
 }
