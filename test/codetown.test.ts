@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CONCEPTS, diff, format, parse, render, type Town } from '../src/index.js';
+import { CONCEPTS, diff, format, parse, render, vocabulary, type Town } from '../src/index.js';
 
 const example = (name: string) => readFileSync(new URL(`../examples/${name}.town`, import.meta.url), 'utf8');
 
@@ -10,8 +10,10 @@ function shape(town: Town): unknown {
 }
 
 describe('parse', () => {
-  it('reads both examples without a problem', () => {
-    for (const name of ['corner-shop', 'pr-209']) expect(parse(example(name)).diagnostics).toEqual([]);
+  it('reads every example without a problem', () => {
+    const names = readdirSync(new URL('../examples/', import.meta.url)).filter((f) => f.endsWith('.town')).map((f) => f.replace(/\.town$/, ''));
+    expect(names.length).toBeGreaterThan(5);
+    for (const name of names) expect([name, parse(example(name)).diagnostics]).toEqual([name, []]);
   });
 
   it('reads places, members, links, conditions and review overlays', () => {
@@ -161,6 +163,11 @@ describe('render', () => {
     expect(svg).toContain('class="ct dark"');
   });
 
+  it('leaves the colours out for a page that includes them once', () => {
+    const svg = render(parse('service a'), { embedStyle: false });
+    expect(svg).not.toContain('<style>');
+  });
+
   it('escapes what people write', () => {
     const svg = render(parse('system "<b>&"\nservice a "x<y"'));
     expect(svg).toContain('&lt;b&gt;&amp;');
@@ -169,6 +176,11 @@ describe('render', () => {
 });
 
 describe('vocabulary', () => {
+  it('keeps the published vocabulary file in step with the registry', () => {
+    const published = JSON.parse(readFileSync(new URL('../vocabulary.json', import.meta.url), 'utf8'));
+    expect(published).toEqual(JSON.parse(JSON.stringify(vocabulary())));
+  });
+
   it('gives every word a source or a candidate, except the two connection words', () => {
     const unsourced = CONCEPTS.filter((one) => !one.source && !one.candidate).map((one) => one.keyword);
     expect(unsourced).toEqual(['guard', 'broken', 'degraded']);

@@ -1,0 +1,105 @@
+system "sourceant/sourceant#192"
+intent "Add architecture inspection and MCP skills"
+purpose feat "Add architecture inspection and MCP skills"
+
+district api "api"
+district core "core"
+district docs "docs"
+district mcp_server "mcp_server"
+district migrations "migrations"
+district models "models"
+district plugins "plugins"
+district prompts "prompts"
+district root "root"
+district scripts "scripts"
+district utils "utils"
+
+service root "/" in=root size=1
+
+service docs "docs" in=docs size=1
+
++ service scripts "scripts" in=scripts size=1
+  + function main
+
+service api "src/api" in=api size=1
+
+service api_routes "src/api/routes" in=api
+  + endpoint Grouping
+  + endpoint Component
+  + endpoint Location
+  + endpoint Evidence
+  + endpoint Relationship
+  + endpoint Coverage
+  + endpoint Snapshot
+  + endpoint snapshot
+  + endpoint read_architecture
+
++ service core_code_index "src/core/code_index" in=core size=3
+  + function _digest
+  + function _path
+  + function summarize
+  + function indexed
+  + function joined
+
+service core_mcp "src/core/mcp" in=core size=3
+  ~ function get_requirement_coverage
+  ~ function check_requirements
+  + function render
+  + function use_skill
+  + function choose_skill
+  + function available
+  + function get_prompt
+  + function location
+  + function destination
+
+service core_skills "src/core/skills" in=core size=3
+  ~ function skill_from_markdown
+  ~ function applies_to
+  ~ function kind
+  ~ function reviews
+  + function scope
+  + function entries
+  + function all
+  + function one
+  + function _put
+
+service mcp_server "src/mcp_server" in=mcp_server size=1
+  ~ function read_index
+  ~ function _repositories
+  + function get_index_status
+  + function index_repository
+
++ service migrations_versions "src/migrations/versions" in=migrations size=1
+  + function upgrade
+  + function downgrade
+
+database models "src/models" in=models size=1
+
+service builtin_code_reviewer "src/plugins/builtin/code_reviewer" in=plugins size=1
+  ~ function run_pass
+  ~ function process
+  ~ function review
+
+service prompts "src/prompts" in=prompts size=1
+  ~ class Prompts
+
+service utils "src/utils" in=utils size=1
+  ~ function _is_actionable
+
+api_routes calls core_code_index
+builtin_code_reviewer calls api_routes
+core_mcp calls core_skills
+
+risk 1 at core_skills.skill_from_markdown "`fields.get(\"applications\", {})` returns `None` when the front matter has an empty `applications:` key, and `Skill.__post_init__` rejects a non-mapping with `ValueError`, so a valid skill file fails to load and the…" impact=none certainty=possible blast=one
+risk 2 at core_skills.kind "`kind` now returns a plain `str` instead of `SkillType`." impact=none certainty=possible blast=one
+risk 3 at core_code_index.joined "The function was moved here from `src/api/routes/code.py` but lost its docstring in the process." impact=none certainty=possible blast=one
+risk 4 at core_mcp "The response exposes two independent notions of truncation under confusing names: the top-level `\"truncated\"` reflects only the body, while the local `truncated` (surfaced as `content_truncated`/`details_truncated`)…" impact=none certainty=possible blast=one
+risk 5 at api_routes.snapshot "The `Snapshot` pydantic model defines the wire contract (`max_length` on names/paths, `pattern` on fingerprints, `max_length` on components/relationships), but `GET /api/code/architecture` returns the unchecked dict…" impact=none certainty=possible blast=one
+risk 6 at builtin_code_reviewer "`skill.kind` is now used as a raw value elsewhere in this diff (the `.value` accessor was deliberately removed and `get_skill` returns `kind` as a plain string such as `\"requirements-analysis\"`)." impact=none certainty=possible blast=one
+risk 7 at api_routes "`joined` is imported here through the sibling route module, which only works because `src/api/routes/code.py` re-exports its own import." impact=none certainty=possible blast=one
+risk 8 at core_mcp "The aggregate `truncated` now returns `True` when only `description` is clipped (`len(skill.description) > 2000`), but no other flag accounts for that case: `truncated` (details), `body_truncated`, `content_truncated`…" impact=none certainty=possible blast=one
+
+test api_routes "test_architecture.py"
+test core_mcp "test_mcp_server.py, test_mcp_skills.py, test_sql_skills.py" count=3
+test mcp_server "test_mcp_indexing.py"
+test utils "test_suggestion_filter.py"

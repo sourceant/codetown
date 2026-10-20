@@ -1,0 +1,127 @@
+system "sourceant/sourceant#209"
+intent "Add repository context and scale large reviews"
+purpose feat "Add repository context and scale large reviews"
+
+district api "api"
+district core "core"
+district docs "docs"
+district integrations "integrations"
+district llms "llms"
+district models "models"
+district plugins "plugins"
+district prompts "prompts"
+district utils "utils"
+
+service docs "docs" in=docs size=1
+
+service api_routes "src/api/routes" in=api size=1
+  ~ endpoint Snapshot
+  ~ endpoint submit_snapshot
+
+service core "src/core" in=core size=4
+  ~ function model_call
+  ~ function submit
+  ~ function keyed
+  ~ function _source_excerpts
+  ~ function _fit_to_character_limit
+  ~ function merge_review_code_contexts
+  + function shared
+  + function background
+  + function stage
+
+service core_change_context "src/core/change_context" in=core size=1
+  ~ function read_change
+
+service core_code_index "src/core/code_index" in=core size=1
+  ~ function import_index
+  ~ function _occurrence_edge_types
+  ~ function _descriptor_name
+  ~ function _lines
+  ~ function _identity
+
+service core_model "src/core/model" in=core size=1
+  ~ function provider_for
+  ~ function purpose_provider
+
+service core_review "src/core/review" in=core size=5
+  + class Link
+  + function rendered
+  + function _graph
+  + function read
+  + function candidates
+  + function nearness
+  + function refers_to
+  + function credited
+  + function call_context
+
+service core_search "src/core/search" in=core size=1
+  ~ function matching_lines
+  ~ function _prepare
+
+service core_settings "src/core/settings" in=core
+
+service integrations_github "src/integrations/github" in=integrations size=1
+  ~ function get_diff_between_shas
+  ~ function list_paths
+  ~ function get_file_content
+
+service llms "src/llms" in=llms
+  ~ function _escape_json_controls
+  ~ function _is_a_round
+  ~ function _completion
+  ~ function _spent
+  ~ function _credentials
+  ~ function _format_existing_comments
+  ~ function read
+  ~ function _validated_response
+  ~ function generate_code_review
+
+database models "src/models" in=models size=1
+  ~ class CodeSuggestion
+  ~ class CodeReview
+  ~ class CodeReviewFindings
+  ~ function summary_from
+
+service builtin_code_reviewer "src/plugins/builtin/code_reviewer" in=plugins size=5
+  ~ function prepare
+  ~ function cost
+  ~ function _describe
+  ~ function describe_batch
+  ~ function summarize_changes
+  ~ function generate_review
+  ~ function _batched
+  ~ function review
+  ~ function resolve_known
+
+service prompts "src/prompts" in=prompts size=1
+  ~ class Prompts
+
+service utils "src/utils" in=utils size=1
+  ~ function _build_mapping
+  ~ function _multiline_block_search
+  ~ function filter_suggestions
+
+external outside_llm_providers "LLM providers"
+
+external outside_github "github"
+
+builtin_code_reviewer calls core
+builtin_code_reviewer calls core_change_context
+builtin_code_reviewer calls core_model
+builtin_code_reviewer calls core_review
+builtin_code_reviewer calls integrations_github
+builtin_code_reviewer calls models
+builtin_code_reviewer calls utils
+core_review calls builtin_code_reviewer
+core_review calls core
+core_review calls core_model
+core_review calls core_search
+core_review calls models
+integrations_github calls outside_github
+llms calls core
+llms calls models
+llms calls outside_llm_providers
+
+test core "test_review_performance.py, test_review_trace.py" count=2
+test core_review "test_review_calls.py, test_review_contracts.py, test_review_investigations.py" count=5
+test utils "test_line_mapper.py"

@@ -7,12 +7,18 @@ export interface RenderOptions {
   animate?: boolean;
   /** Follow the reader's setting, or force one. */
   theme?: 'auto' | 'light' | 'dark';
+  /**
+   * Carry the colours inside the SVG. A page that draws several towns can
+   * leave them out and include `codetownStyle` once instead.
+   */
+  embedStyle?: boolean;
 }
 
 const esc = (text: string) =>
   String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
-const STYLE = `
+/** The colours and type every drawing uses, for a page to include once. */
+export const codetownStyle = `
 .ct{--bg:#eef0ea;--ground:#e2e7dc;--district:#d6ddcf;--ink:#1f2622;--muted:#5e6a63;--line:#c9d0c6;--bldg:#fbfbf7;--window:#f2c94c;--dark:#3a423d;--door:#6b4f3a;--road:#7a838a;--pipe:#3b7ea8;--outside:#d9ddd6;--add:#2e8b57;--mod:#2a6db0;--del:#a3a9a5;--bad:#c8452f;--warn:#d08a1e;--water:#4a90c2;--panel:#f8f9f5}
 .ct.dark{--bg:#121614;--ground:#1c231f;--district:#232b26;--ink:#e4e8e2;--muted:#96a29a;--line:#2f3833;--bldg:#2a322d;--window:#e8b93f;--dark:#0d100e;--door:#a07a5a;--road:#8d969c;--pipe:#5aa0cc;--outside:#232925;--add:#5fb37a;--mod:#6aa8e8;--del:#5b635e;--bad:#e2654c;--warn:#e0a23c;--water:#3a7fb3;--panel:#1a201d}
 @media (prefers-color-scheme:dark){.ct.auto{--bg:#121614;--ground:#1c231f;--district:#232b26;--ink:#e4e8e2;--muted:#96a29a;--line:#2f3833;--bldg:#2a322d;--window:#e8b93f;--dark:#0d100e;--door:#a07a5a;--road:#8d969c;--pipe:#5aa0cc;--outside:#232925;--add:#5fb37a;--mod:#6aa8e8;--del:#5b635e;--bad:#e2654c;--warn:#e0a23c;--water:#3a7fb3;--panel:#1a201d}}
@@ -59,7 +65,8 @@ export function render(town: Town, options: RenderOptions = {}): string {
   if (animate) town.trips.forEach((trip, index) => parts.push(tripVehicle(trip.stops, map, index)));
 
   const label = town.intent ? `${town.name}: ${town.intent}` : town.name;
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="ct ${theme}" viewBox="0 0 ${map.width} ${map.height}" width="${map.width}" height="${map.height}" role="img" aria-label="${esc(label)}"><style>${STYLE}</style>${parts.join('')}</svg>`;
+  const style = options.embedStyle === false ? '' : `<style>${codetownStyle}</style>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="ct ${theme}" viewBox="0 0 ${map.width} ${map.height}" width="${map.width}" height="${map.height}" role="img" aria-label="${esc(label)}">${style}${parts.join('')}</svg>`;
 }
 
 function wall(town: Town, map: Layout): string {

@@ -5,7 +5,7 @@ import { format } from './format.js';
 import { parse } from './parse.js';
 import { render } from './render.js';
 import type { Town } from './model.js';
-import { CONCEPTS } from './vocabulary.js';
+import { CONCEPTS, vocabulary } from './vocabulary.js';
 
 const USAGE = `codetown: describe software as a city
 
@@ -14,7 +14,7 @@ const USAGE = `codetown: describe software as a city
   codetown render <file.town> [-o out.svg] [--still] [--theme light|dark|auto]
   codetown diff <before.town> <after.town> [-o change.town]
   codetown json <file.town>                  print the parsed town as JSON
-  codetown words                             print every word, its meaning and its source
+  codetown words [--json]                    print every word, its meaning and its source
 `;
 
 function read(path: string | undefined): Town {
@@ -78,6 +78,10 @@ switch (command) {
     break;
   }
   case 'words': {
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(vocabulary(), null, 2) + '\n');
+      break;
+    }
     const rows = CONCEPTS.map((one) => {
       const source = one.source ? `${one.source.name}: ${one.source.term}` : one.candidate ? `Candidate: ${one.candidate.name}, ${one.candidate.term}` : 'None yet';
       const words = [one.keyword, ...one.aliases].map((word) => `\`${word}\``).join(', ');

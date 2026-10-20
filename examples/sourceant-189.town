@@ -1,0 +1,134 @@
+system "sourceant/sourceant#189"
+intent "Configure parallel passes and reliable findings delivery"
+purpose feat "Configure parallel passes and reliable findings delivery"
+
+district cli "cli"
+district core "core"
+district docs "docs"
+district events "events"
+district integrations "integrations"
+district llms "llms"
+district models "models"
+district plugins "plugins"
+district prompts "prompts"
+district utils "utils"
+
+service docs "docs" in=docs size=1
+
+service cli "src/cli" in=cli size=1
+  ~ function work_command
+
+service core "src/core" in=core size=1
+  + function submit
+  + function parallel_map
+  ~ function search
+  ~ function traverse
+  ~ function _resolve
+  ~ class DefaultReviewCodeContextPreparer
+
+service core_analysis "src/core/analysis" in=core size=1
+  ~ function fetch
+
+service core_review "src/core/review" in=core size=1
+  + function excluded
+  + function review_diff
+  ~ function review
+
+service core_review_coverage "src/core/review_coverage" in=core size=1
+  ~ function read_and_unread
+
+service core_review_evidence "src/core/review_evidence" in=core size=1
+  ~ function read
+  ~ function _extract
+
+service core_settings "src/core/settings" in=core size=1
+
+service core_skills "src/core/skills" in=core size=1
+  ~ function for_review
+
++ queue events "src/events" in=events size=1
+  + function queue_review
+  + function run
+
+service integrations_github "src/integrations/github" in=integrations size=4
+  ~ function get_installation_id
+  ~ function get_installation_access_token
+  ~ function download_repository_archive
+  ~ function _create_or_update_overview_comment
+  ~ function shown
+  ~ function post_review
+  ~ function list_open_pull_requests
+  + function retry_after
+  + function marker_for
+
+service llms "src/llms" in=llms size=1
+  ~ function _completion
+  ~ function _spent
+  ~ function _structured
+  ~ function summarize
+  ~ function ask
+  ~ function say
+  ~ function compare
+  ~ function generate_summary
+
+database models "src/models" in=models size=1
+  ~ class CodeSuggestion
+  ~ class CodeReviewOverview
+
+service builtin_code_reviewer "src/plugins/builtin/code_reviewer" in=plugins size=3
+  ~ function describe
+  ~ function describe_batch
+  ~ function _handle_event
+  ~ function generate_review
+  ~ function read
+  ~ function run_pass
+  ~ function process
+  ~ function review
+
+service prompts "src/prompts" in=prompts size=1
+  ~ class Prompts
+
+service utils "src/utils" in=utils size=1
+  ~ function save_review_record
+  ~ class SuggestionFilter
+
+external outside_llm_providers "LLM providers"
+
+external outside_github "github"
+
+builtin_code_reviewer calls core
+builtin_code_reviewer calls core_review
+builtin_code_reviewer calls core_review_coverage
+builtin_code_reviewer calls core_skills
+builtin_code_reviewer calls events
+builtin_code_reviewer calls integrations_github
+builtin_code_reviewer calls utils
+cli calls events
+core_analysis calls core
+core_review_evidence calls builtin_code_reviewer
+events calls integrations_github
+events calls utils
+integrations_github calls outside_github
+llms calls outside_llm_providers
+
+risk 1 at integrations_github.shown "`shown` treats a falsy value as \"hide\"." impact=none certainty=possible blast=one
+risk 2 at integrations_github "The three new settings are scoped to USER, REPOSITORY, WORKSPACE and ORGANIZATION, but this fallback Configuration carries only `repository`." impact=none certainty=possible blast=one
+risk 3 at integrations_github "Rate-limit responses now raise `HTTPError` instead of returning a `pending` result, so GitHub's `Retry-After` delay is lost and `ReviewPosting`'s pending branch never fires." impact=none certainty=possible blast=one
+risk 4 at integrations_github "The retried native body is built only from `finding_sections`, which ignores `review.summary`, so `tool_findings` are silently dropped when inline posting is rejected." impact=none certainty=possible blast=one
+risk 5 at integrations_github "The full-review body passed as the second attempt is built eagerly, so `finding_sections` formats every finding even when the first (inline) attempt succeeds." impact=none certainty=possible blast=one
+risk 6 at builtin_code_reviewer "When nitpicks are off, a suggestion whose `category` is `None` is dropped because `None not in {BUG, SECURITY, PERFORMANCE}` is true." impact=none certainty=possible blast=one
+risk 7 at integrations_github "When `finding_sections` returns nothing (no suggestions and no summary), `parts` ends up as `[\"\"]` and `post_findings` posts an empty findings comment on the pull request." impact=none certainty=possible blast=one
+risk 8 at utils.SuggestionFilter "`improv|enhanc|ensures` are matched anywhere, so actionable comments like \"Add a null check to improve robustness\" are classified as praise and filtered out." impact=none certainty=possible blast=one
+risk 9 at builtin_code_reviewer.generate_review "Producer/consumer contract mismatch." impact=none certainty=possible blast=one
+risk 10 at builtin_code_reviewer.review "This early-return guard drops the `omitted` condition that `reviewing.py` requires, so the two producers of the same exclusion outcome disagree." impact=none certainty=possible blast=one
+risk 11 at integrations_github "The previous `post_review` caught `(requests.exceptions.RequestException, ValueError)` before deciding on a fallback, which indicates token acquisition or payload validation can raise `ValueError`." impact=none certainty=possible blast=one
+risk 12 at core "`SharedReader` caches the failed future permanently." impact=none certainty=possible blast=one
+risk 13 at core "`SharedReader` memoises failures permanently." impact=none certainty=possible blast=one
+risk 14 at builtin_code_reviewer.read "`pass_changes` narrows `diff` to the files this pass reads but leaves `files` at the full set." impact=none certainty=possible blast=one
+risk 15 at integrations_github.get_installation_id "Same pattern as the other handler: the bare `raise` keeps `response` info for `requests` failures but also forwards every other exception type." impact=none certainty=possible blast=one
+risk 16 at builtin_code_reviewer "The `is True` identity check only accepts an exact boolean, so a truthy non-bool setting value leaves nitpicks disabled even when the user enabled them." impact=none certainty=possible blast=one
+risk 17 at builtin_code_reviewer.generate_review "`post_result.get(\"retry_after\", 60)` only defaults when the key is absent; a pending result that carries `retry_after: None` makes `max(None, ...)` raise `TypeError`, turning a retry into a crash." impact=none certainty=possible blast=one
+
+test builtin_code_reviewer "test_pull_request_overview.py, test_code_reviewer_plugin.py" count=2
+test llms "test_litellm_provider.py"
+test utils "test_suggestion_filter.py"

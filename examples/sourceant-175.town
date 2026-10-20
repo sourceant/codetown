@@ -1,0 +1,48 @@
+system "sourceant/sourceant#175"
+intent "Read a system's connections in the background"
+purpose fix "Read a system's connections in the background"
+
+district api "api"
+district cli "cli"
+district core "core"
+
+service api_routes "src/api/routes" in=api
+  ~ endpoint get_topology_repository
+  ~ endpoint get_scope
+  ~ endpoint read_connections
+  ~ endpoint DiscoverInput
+  ~ endpoint discover_connections
+  ~ endpoint read_discovery
+  ~ endpoint _discovered
+
+service cli "src/cli" in=cli size=1
+  ~ function work_command
+
+service core_jobs "src/core/jobs" in=core size=1
+  ~ job read_batch
+  ~ job in_batch
+  ~ job JobWakeup
+  ~ job read
+
+service core_topology "src/core/topology" in=core size=4
+  + function _request
+  + function manifests_job
+  + function reading_job
+  + function reading_key
+  + function already_read
+  + function remember_read
+  + function _scope
+  + function _forge
+  + function _token
+
+api_routes calls core_topology
+
+risk 1 at core_topology "In the `discover` function, fetching the head revision of each repository is done sequentially and synchronously using `httpx.get`." impact=none certainty=possible blast=one
+risk 2 at api_routes.read_connections "This synchronous connection proposal endpoint duplicates the scanning and proposal logic of the new background `Readings` job handler (`src/core/topology/discovery.py`)." impact=none certainty=possible blast=one
+risk 3 at core_topology._forge "Catching a broad `Exception` (BLE001) in `_forge` can mask issues during `GitHub` client initialization, such as missing configuration environment variables." impact=none certainty=possible blast=one
+risk 4 at core_topology._forge "The `_forge` function currently uses a broad `Exception` catch, which can hide specific problems during the import of the `GitHub` module or the instantiation of the `GitHub` client." impact=none certainty=possible blast=one
+risk 5 at core_topology "To avoid redundant token minting requests when multiple assets belong to the same repository, deduplicate the repository list before mapping `_token` over them." impact=none certainty=possible blast=one
+risk 6 at core_topology "To prevent potential `KeyError` or passing `None`/empty strings to `_where` (which would trigger noisy logged warnings in `_token` or `head_revision`), safely retrieve and filter the repository name from each asset to…" impact=none certainty=possible blast=one
+risk 7 at core_topology "This line effectively deduplicates the list of repository names, addressing the previous \"Minor Suggestion\" to avoid redundant token minting and HTTP requests for the same repository." impact=none certainty=possible blast=one
+
+test core_topology "test_core_jobs_store.py, test_topology_discovery.py" count=2
