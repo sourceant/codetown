@@ -54,7 +54,7 @@ if (town.diagnostics.length) console.log(town.diagnostics);
 const svg = render(town, { animate: true, theme: 'auto' });
 ```
 
-`render` returns one self-contained SVG with its own light and dark styles. Every place carries `data-id`, every risk `data-risk` and every behavior `data-behavior`, so a page can make them clickable.
+`render` returns one self-contained SVG with its own light and dark styles. A page drawing several towns can pass `embedStyle: false` and include `codetownStyle` once. Every place carries `data-id`, every risk `data-risk` and every behavior `data-behavior`, so a page can make them clickable.
 
 ## The language
 

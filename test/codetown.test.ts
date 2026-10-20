@@ -161,6 +161,11 @@ describe('render', () => {
     expect(svg).toContain('class="ct dark"');
   });
 
+  it('leaves the colours out for a page that includes them once', () => {
+    const svg = render(parse('service a'), { embedStyle: false });
+    expect(svg).not.toContain('<style>');
+  });
+
   it('escapes what people write', () => {
     const svg = render(parse('system "<b>&"\nservice a "x<y"'));
     expect(svg).toContain('&lt;b&gt;&amp;');
