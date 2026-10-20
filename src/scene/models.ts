@@ -33,8 +33,6 @@ export interface Kit {
 
 export function createKit(ctx: KitContext): Kit {
 const anims = ctx.anims
-/* ---------- small shape kit ---------- */
-
 const mats = new Map()
 function mat(color, extra = {}) {
   const key = color + JSON.stringify(extra)
@@ -100,8 +98,6 @@ function windows() {
 }
 
 
-/* ---------- moving work ---------- */
-
 /** Items riding a straight belt along x from a to b, recoloured past `paint` if given. */
 function belt(g, a, b, y, z, n, colour, speed, options = {}) {
   const base = box(Math.abs(b - a) + 0.06, 0.04, 0.12, '#30353b', (a + b) / 2, y - 0.04, z)
@@ -126,8 +122,6 @@ function belt(g, a, b, y, z, n, colour, speed, options = {}) {
 function curvePath(points) {
   return new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, 0.09, z)), true, 'catmullrom', 0.3)
 }
-
-/* ---------- the three languages ---------- */
 
 const spin = (o, speed, axis = 'y') => anims.push((t) => { o.rotation[axis] = t * speed })
 
