@@ -178,3 +178,22 @@ export type Traffic = (typeof TRAFFIC)[number];
 
 export const WORLDS = ['town', 'body', 'workshop', 'bank'] as const;
 export type World = (typeof WORLDS)[number];
+
+/**
+ * The whole language as data, for generators written in other languages:
+ * every word with its role and source, and the closed sets options take.
+ */
+export function vocabulary() {
+  return {
+    concepts: CONCEPTS.map((one) => ({ ...one })),
+    changes: CHANGES,
+    purposes: PURPOSES,
+    impacts: IMPACTS,
+    certainties: CERTAINTIES,
+    blasts: BLASTS,
+    triggers: TRIGGERS,
+    traffic: TRAFFIC,
+    worlds: WORLDS,
+    statements: ['system', 'world', 'intent', 'purpose', 'district', 'risk', 'behavior', 'test', 'trip'],
+  };
+}

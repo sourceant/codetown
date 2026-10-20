@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CONCEPTS, diff, format, parse, render, type Town } from '../src/index.js';
+import { CONCEPTS, diff, format, parse, render, vocabulary, type Town } from '../src/index.js';
 
 const example = (name: string) => readFileSync(new URL(`../examples/${name}.town`, import.meta.url), 'utf8');
 
@@ -174,6 +174,11 @@ describe('render', () => {
 });
 
 describe('vocabulary', () => {
+  it('keeps the published vocabulary file in step with the registry', () => {
+    const published = JSON.parse(readFileSync(new URL('../vocabulary.json', import.meta.url), 'utf8'));
+    expect(published).toEqual(JSON.parse(JSON.stringify(vocabulary())));
+  });
+
   it('gives every word a source or a candidate, except the two connection words', () => {
     const unsourced = CONCEPTS.filter((one) => !one.source && !one.candidate).map((one) => one.keyword);
     expect(unsourced).toEqual(['guard', 'broken', 'degraded']);
