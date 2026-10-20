@@ -1,6 +1,6 @@
 {
   "name": "@sourceant/codetown",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Describe software, or a change to it, in a small language and draw it as an animated city.",
   "type": "module",
   "main": "./dist/index.js",
@@ -53,5 +53,8 @@
     "three": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
