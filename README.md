@@ -79,6 +79,21 @@ A mark before a line says how a change touched it: `+` added, `~` modified, `-` 
 
 Every word comes from a vocabulary engineers already publish and use: the C4 model, ArchiMate, the Language Server Protocol's symbol kinds, Enterprise Integration Patterns, git's change letters, the dependability taxonomy of Avizienis et al., the SRE golden signals and Conventional Commits. [VOCABULARY.md](VOCABULARY.md) lists each word with its source.
 
+## Examples
+
+`examples/` holds towns written by hand and towns generated from real pull requests to [sourceant/sourceant](https://github.com/sourceant/sourceant), with the findings its review posted on them. They range from a dozen lines to more than a hundred parts and calls.
+
+| Town | Pull request |
+| --- | --- |
+| `corner-shop.town` | Written by hand |
+| `pr-209.town` | Written by hand from sourceant#209 |
+| `sourceant-175.town` | Read a system's connections in the background |
+| `sourceant-189.town` | Configure parallel passes and reliable findings delivery |
+| `sourceant-192.town` | Add architecture inspection and MCP skills |
+| `sourceant-194.town` | Add groups, groupables and grouping for requirements |
+| `sourceant-201.town` | Add parallel discovery and evaluation |
+| `sourceant-209.town` | Add repository context and scale large reviews |
+
 ## Worlds
 
 The language names concepts once; a world draws them. `world town` is the only world drawn so far. `body`, `workshop` and `bank` are accepted and drawn as the town until their symbols are built.

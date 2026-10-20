@@ -1,0 +1,86 @@
+system "sourceant/sourceant#194"
+intent "Add groups, groupables and grouping for requirements"
+purpose feat "Add groups, groupables and grouping for requirements"
+
+district api "api"
+district core "core"
+district mcp_server "mcp_server"
+district migrations "migrations"
+district plugins "plugins"
+
+service api "src/api" in=api size=1
+
+service api_routes "src/api/routes" in=api
+  + endpoint get_groups
+  + endpoint properties_map
+  + endpoint optional_text
+  + endpoint MemberInput
+  + endpoint search
+  + endpoint rollup
+  + endpoint members
+  + endpoint put
+  + endpoint place
+
++ service core "src/core" in=core size=1
+  + function groupables
+  + function groups
+  + function _store
+  + function _requirements
+
+service core_change_context "src/core/change_context" in=core size=1
+  ~ class ChangeContext
+  ~ function resolve
+  ~ function _groups_for
+  ~ function _code_for
+
++ service core_groups "src/core/groups" in=core size=5
+  + function types
+  + function place
+  + function rollup
+  + function _counts
+  + function put
+  + function unfile
+  + function remove
+  + function search
+  + function members
+
+service core_mcp "src/core/mcp" in=core
+  ~ function group_scope
+  ~ function put_group
+  ~ function place_in_group
+  ~ function unfile_from_group
+  ~ function search_groups
+  ~ function get_group_rollup
+  ~ function _require_requirements
+  ~ function _require_groups
+  ~ function _require_knowledge
+
++ service core_requirements "src/core/requirements" in=core size=1
+  + function type
+  + function exists
+  + function summarize
+
+service mcp_server "src/mcp_server" in=mcp_server size=1
+  ~ function _assemble
+
++ service migrations_versions "src/migrations/versions" in=migrations size=1
+  + function upgrade
+  + function downgrade
+
+service builtin_code_reviewer "src/plugins/builtin/code_reviewer" in=plugins size=1
+  ~ function change_context_resolver
+  ~ function requirements_section
+
+api_routes calls core_groups
+builtin_code_reviewer calls core
+core_mcp calls api_routes
+core_requirements calls api_routes
+mcp_server calls core
+
+risk 1 at core_groups "The HTTP layer bounds `id`/`type`/`status`/`parent_id` to 255 and `external_ref` to 500 (matching the column widths in `sql.py` and `create_group_tables.py`), but the shared model only checks for emptiness." impact=none certainty=possible blast=one
+risk 2 at api_routes "When `groups` is supplied but grouping is unavailable, `_held_by(None, ...)` returns `{}`, `held` is therefore not `None`, every scope is skipped and the endpoint answers `{\"data\": [], \"total\": 0, \"has_more\": false}`." impact=none certainty=possible blast=one
+risk 3 at migrations_versions.upgrade "The `object_groups`/`object_group_members` tables are declared twice: here in the migration with `sa.ForeignKey(\"scopes.id\")` on `scope_id` and `member_scope_id`, and again in `src/core/groups/sql.py` via…" impact=none certainty=possible blast=one
+
+test api_routes "test_groups.py"
+test builtin_code_reviewer "test_review_change_context.py"
+test core_mcp "test_mcp_server.py"

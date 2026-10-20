@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CONCEPTS, diff, format, parse, render, vocabulary, type Town } from '../src/index.js';
 
@@ -10,8 +10,10 @@ function shape(town: Town): unknown {
 }
 
 describe('parse', () => {
-  it('reads both examples without a problem', () => {
-    for (const name of ['corner-shop', 'pr-209']) expect(parse(example(name)).diagnostics).toEqual([]);
+  it('reads every example without a problem', () => {
+    const names = readdirSync(new URL('../examples/', import.meta.url)).filter((f) => f.endsWith('.town')).map((f) => f.replace(/\.town$/, ''));
+    expect(names.length).toBeGreaterThan(5);
+    for (const name of names) expect([name, parse(example(name)).diagnostics]).toEqual([name, []]);
   });
 
   it('reads places, members, links, conditions and review overlays', () => {
