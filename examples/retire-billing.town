@@ -1,0 +1,15 @@
+system "Retire the legacy billing"
+intent "Move invoices to the new billing service and retire the old one"
+
+service api "src/api/routes"
+  ~ endpoint create_invoice
+  - endpoint legacy_invoice
+- service legacy_billing "src/legacy/billing"
+  - function charge
++ service billing "src/billing"
+  + function charge
+database invoices "src/models"
+
+api calls billing
+- api calls legacy_billing
+billing writes invoices
