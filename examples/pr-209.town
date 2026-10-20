@@ -1,0 +1,56 @@
+# sourceant/sourceant#209 as a change: review large pull requests in parts.
+system "SourceAnt review"
+intent "Review pull requests of any size in parts"
+purpose feat "Add repository context and scale large reviews"
+
+district review "Review core"
+district edges "Around it"
+
+external github "GitHub"
+
+service plugin "Review plugin" in=edges
+  ~ function generate_review
+  endpoint POST /webhooks/github
+
+service reviewer "Reviewer" in=review size=4
+  ~ function review
+  ~ function read
+  + function plan_parts
+  + function change_digest
+  config READING_BUDGET
+
++ service investigations "Investigations" in=review
+  + function investigations_for
+  + function _fitted
+
++ service callcontext "Call context" in=review
+  + function call_context
+  + function refers_to
+
+service settings "Settings" in=edges
+  ~ config review.reading_budget
+  + config review.split_large_changes
+  + config review.maximum_parts
+
+database codeindex "Code index" in=edges
+database docs "Repository docs" in=edges
+
+github calls plugin traffic=high
+plugin calls reviewer
+reviewer calls investigations
++ reviewer calls callcontext
++ callcontext reads codeindex "callers"
++ reviewer reads docs "documentation"
+reviewer reads settings
+plugin calls github "post review"
+
+trip large_pr: github -> plugin -> reviewer -> investigations
+
+behavior B1 at reviewer "A change too large for one call failed" -> "Reviewed in up to 64 parts"
+behavior B2 at callcontext "Each part saw only its own diff" -> "Changed functions bring their callers"
+
+risk 1 at callcontext.refers_to "Shared names can credit the wrong caller" impact=wrong_answer certainty=possible blast=many trigger=service
+risk 2 at settings "Default reading budget raised to 50,000 tokens" impact=degraded certainty=always blast=everyone trigger=deploy
+
+test investigations "test_review_investigations.py"
+test callcontext "test_review_call_context.py" count=2

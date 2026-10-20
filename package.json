@@ -1,0 +1,33 @@
+{
+  "name": "@sourceant/codetown",
+  "version": "0.1.0",
+  "description": "Describe software, or a change to it, in a small language and draw it as an animated city.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "codetown": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}

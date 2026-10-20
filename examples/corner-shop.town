@@ -1,0 +1,55 @@
+# A small shop, written in Codetown.
+system "Corner Shop"
+intent "Customers browse products and pay for orders"
+
+district front "Front of house"
+district back "Back office"
+
+person shopper "Shopper"
+
+service storefront "Web storefront" in=front
+  endpoint GET /
+  endpoint GET /products
+  function renderPage
+  function searchProducts
+  config THEME
+
+service orders "Order service" in=back size=4
+  endpoint POST /orders
+  endpoint GET /orders/:id
+  function createOrder
+  function validateCart
+  function applyDiscount
+  function reserveStock
+  function sendReceipt
+  guard jwt
+  config ORDER_LIMITS
+  job cleanupAbandonedCarts
+
+service payments "Payment service" in=back
+  endpoint POST /pay
+  function charge
+  function refund
+  guard apiKey
+
+database ordersdb "Postgres: orders" in=back
+cache productcache "Redis" in=front
+queue events "Order events" in=back
+external cards "Card network"
+external mailer "Email provider"
+
+shopper calls storefront
+storefront calls orders traffic=high
+storefront reads productcache
+orders writes ordersdb traffic=high
+orders sends events
+orders calls payments
+payments calls cards "card charges"
+events triggers mailer
+
+slow payments -> cards "Timeouts calling the card network"
+monitored payments
+
+trip checkout: shopper -> storefront -> orders -> payments -> cards
+
+risk 1 at payments "Card network timeouts leave orders unpaid" impact=hang certainty=conditional blast=many trigger=environment
