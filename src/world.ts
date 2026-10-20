@@ -227,7 +227,7 @@ export function world(town: Town): World {
     if (!spot) return;
     hazards.push(...hazard(risk.impact, spot));
     const place = at.get(risk.target.kind === 'link' ? risk.target.from : risk.target.place)!;
-    pins.push({ kind: 'risk', id: risk.id, at: [spot[0], place.model.height + 0.25, place.z], text: risk.text });
+    pins.push({ kind: 'risk', id: risk.id, at: [place.x + (i % 3) * 0.18 - 0.18, place.model.height + 0.3, place.z + 0.1], text: risk.text });
   });
   town.behaviors.forEach((behavior, i) => {
     const spot = standing(behavior.target, at, 0.3 - (i % 2) * 0.12);
